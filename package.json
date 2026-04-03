@@ -1,0 +1,42 @@
+{
+  "name": "oh-my-cursor",
+  "version": "0.1.0",
+  "description": "Workflow layer for Cursor — structured skills, MCP state, and rule scaffolding",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "omc": "dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc && node -e \"require('fs').chmodSync('dist/cli/index.js', 0o755)\"",
+    "dev": "tsc --watch",
+    "start": "node dist/cli/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist/",
+    "rules/",
+    "skills/"
+  ],
+  "keywords": ["cursor", "ai", "workflow", "mcp", "skills", "cursor-rules", "codex", "agent", "oh-my-cursor"],
+  "author": "Philip",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jkudjo/oh-my-cursor.git"
+  },
+  "homepage": "https://github.com/Jkudjo/oh-my-cursor#readme",
+  "bugs": {
+    "url": "https://github.com/Jkudjo/oh-my-cursor/issues"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.7.0"
+  }
+}
