@@ -31,6 +31,10 @@ alwaysApply: false
 ## Rules
 
 - One step at a time. Complete and verify before moving on.
-- Never skip a failing step — fix it or surface it explicitly.
-- If blocked: call `update_mode_state` with phase=`blocked` and explain the blocker.
+- Never skip a failing step — fix the root cause, not the symptom.
+- **Root cause before fix.** Never apply a fix without stating what the root cause is. "It was failing" is not a root cause.
+- **Never mutate tests to make them pass.** If a test is wrong, flag it explicitly and get confirmation before changing it. Silencing assertions is not fixing.
+- **Minimum viable change.** Fix exactly what is broken. Do not refactor surrounding code while fixing a bug.
+- If blocked: call `update_mode_state` with phase=`blocked` and explain the blocker clearly.
 - Persist progress: call `update_mode_state` after each step so state is recoverable.
+- **Blast radius.** Before each step, state what could break if the change is wrong.

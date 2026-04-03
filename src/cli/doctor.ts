@@ -36,6 +36,9 @@ export function runDoctor(cwd = process.cwd()): void {
     "team.mdc",
     "pipeline.mdc",
     "ultrawork.mdc",
+    "careful.mdc",
+    "diagnose.mdc",
+    "incident.mdc",
   ];
   for (const rule of requiredRules) {
     const exists = fs.existsSync(path.join(rulesDir, rule));

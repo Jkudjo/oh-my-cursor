@@ -1,6 +1,6 @@
 {
   "name": "oh-my-cursor",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Workflow layer for Cursor — structured skills, MCP state, and rule scaffolding",
   "type": "module",
   "main": "dist/index.js",
@@ -20,7 +20,17 @@
     "rules/",
     "skills/"
   ],
-  "keywords": ["cursor", "ai", "workflow", "mcp", "skills", "cursor-rules", "codex", "agent", "oh-my-cursor"],
+  "keywords": [
+    "cursor",
+    "ai",
+    "workflow",
+    "mcp",
+    "skills",
+    "cursor-rules",
+    "codex",
+    "agent",
+    "oh-my-cursor"
+  ],
   "author": "Philip",
   "license": "MIT",
   "repository": {
