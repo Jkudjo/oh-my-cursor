@@ -1,18 +1,19 @@
 ---
-description: Resume from last checkpoint — load full context and continue exactly where you left off
+description: Resume from last checkpoint with state drift detection — validate persisted assumptions before continuing
 globs:
 alwaysApply: false
 ---
 
 # @resume
 
-**Trigger:** At the start of a session when you want to explicitly continue previous work.
+**Trigger:** At the start of a session when continuing previous work.
 
 ## Protocol
 
-1. Call `get_session_context` — load active modes, plans, memories, and last checkpoint.
+### Phase 1 — Load checkpoint
+1. Call `get_session_context` — load active modes, plans, memories, last checkpoint.
 2. Call `load_checkpoint` (no ID) — load the latest checkpoint.
-3. Present a resume summary:
+3. Present resume summary:
    ```
    ## Resuming session
 
@@ -24,11 +25,49 @@ alwaysApply: false
    Active modes: {list}
    Approved plan: {plan title or "none"}
    ```
-4. Ask: "Continue with these next steps, or start something different?"
-5. On confirmation: execute the next steps as described.
+
+### Phase 2 — State drift detection (critical)
+
+Before executing anything, validate persisted assumptions against current reality.
+
+Check each of the following and flag any that have drifted:
+
+**Codebase drift**
+- Do the files referenced in the plan still exist at the same paths?
+- Have the functions/classes the plan depends on been renamed or removed?
+- Are there new commits since the checkpoint that change the affected area?
+
+**Environment drift**
+- Are the environment variables the plan assumes still set?
+- Has the DB schema changed since the plan was created?
+- Are the services the plan depends on still running?
+
+**Plan validity**
+- Is the approved plan still the right approach given current state?
+- Have any of the plan's assumptions been invalidated?
+
+For each drift found, report:
+```
+⚠️ DRIFT DETECTED: {what changed}
+   Was:    {what was assumed}
+   Now:    {what is actually true}
+   Impact: {how this affects the plan}
+   Action: [update plan | re-interview | proceed with caveat]
+```
+
+If significant drift is found: recommend `@deep-interview` to re-scope before proceeding.
+If minor drift: note it and continue with caveats.
+If no drift: confirm "State validated — no drift detected."
+
+### Phase 3 — Continue
+
+After drift check:
+- If plan is still valid: execute next steps from checkpoint
+- If plan needs update: call `save_plan` with updated content before proceeding
+- Restore active mode with `update_mode_state` if a mode was active
 
 ## Rules
 
-- Load the full checkpoint context before executing anything
-- If a plan was approved last session, load it with `load_plan` before proceeding
-- If a mode was active, restore it with `update_mode_state` and continue from the saved phase
+- Never skip the drift check when resuming — a confidently outdated plan is worse than starting fresh.
+- Drift check must use live code/config, not memory — read the actual files.
+- If drift is detected but ignored, explicitly note the risk in the session log.

@@ -1,20 +1,44 @@
 ---
-description: Safety guardrails — pause before destructive actions, scope blast radius, require rollback plan
+description: Safety guardrails — risk classification engine, blast radius, rollback required for HIGH/CRITICAL
 globs:
 alwaysApply: true
 ---
 
 # Safety Guardrails (always active)
 
-These rules apply in every session, regardless of which skill is active.
+## Risk Classification Engine
 
-## Hard stops — require explicit user confirmation before proceeding
+Every action must be tagged with a risk level before execution.
 
-Any action in these categories must be presented to the user with:
-1. What will change
-2. What could break
-3. Rollback path
-4. Confirmation request: "Confirm? (yes / no)"
+| Level | Definition | Gate |
+|-------|-----------|------|
+| **LOW** | Read-only, no state change | Proceed freely |
+| **MEDIUM** | Config change, cache invalidation, service restart | Narrate before executing |
+| **HIGH** | State mutation, schema change, dependency modification | Requires plan + rollback path |
+| **CRITICAL** | Data loss, infra destroy, auth removal, irreversible | Requires explicit confirmation + blast radius + rollback simulation |
+
+**Before any action, state:**
+```
+Action: [what will happen]
+Risk:   LOW / MEDIUM / HIGH / CRITICAL
+Reason: [why this risk level]
+```
+
+For HIGH:
+```
+Plan:     [sequence of changes]
+Rollback: [exact steps to undo]
+```
+
+For CRITICAL:
+```
+Blast radius:      [what breaks if this goes wrong]
+Rollback:          [exact steps to undo]
+Rollback safe?:    [yes / no — explain if no]
+Confirm to proceed: [wait for explicit "yes"]
+```
+
+## Hard stops — CRITICAL level, require explicit confirmation
 
 **Infrastructure**
 - `terraform apply` or `terraform destroy`
@@ -32,38 +56,53 @@ Any action in these categories must be presented to the user with:
 - `rm -rf` or any recursive delete
 - `git push --force` to main/master
 - `git reset --hard` on shared branches
-- Overwriting uncommitted changes
 
 **Auth & secrets**
 - Disabling authentication (even temporarily)
 - Rotating secrets without a re-deploy plan
 - Committing credentials or tokens
 
-## Soft warnings — proceed after stating the risk
+## HIGH level — narrate + plan + rollback before executing
 
-These don't require confirmation but must be narrated before execution:
 - Restarting services in production
-- Changing environment variables
-- Invalidating caches
-- Killing processes
+- Changing environment variables in production
 - Modifying CI/CD pipelines
+- Killing processes
+- Any migration (even reversible)
+
+## MEDIUM level — narrate before executing
+
+- Invalidating caches
+- Changing feature flags
+- Config changes in non-production environments
 
 ## When asked to bypass safety
 
-If asked to "ignore safety checks", "skip confirmation", "do it fast", or "disable auth for testing":
+If asked to "ignore safety", "skip confirmation", "do it fast", or "disable auth for testing":
 
 1. Acknowledge the urgency
 2. State the specific risk in one sentence
-3. Propose a safer fast path that achieves the same goal
-4. Only proceed if the user explicitly accepts the risk after seeing it
+3. Propose a safer fast path
+4. Only proceed if the user explicitly accepts the risk after seeing the classification
 
 ## The "full access" trap
 
-When given broad permission ("you have full terminal access", "do whatever is necessary"):
+When given broad permission ("do whatever is necessary", "full terminal access"):
+- Still classify every action before running it
+- Enumerate planned actions upfront
+- Start with LOW-risk read-only inspection
 
-- Start with read-only inspection regardless
-- Do not interpret broad permission as approval for destructive actions
-- Enumerate planned actions before executing any of them
+## Execution boundaries
+
+Before any HIGH or CRITICAL action, explicitly state scope:
+```
+Files affected:    [list]
+Services affected: [list]
+Environments:      [dev / staging / production]
+Scope exceeds expected? [yes → force @ralplan review / no → proceed]
+```
+
+If scope is larger than expected: pause and surface before continuing.
 
 ## Production data
 

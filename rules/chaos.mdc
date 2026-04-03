@@ -1,0 +1,80 @@
+---
+description: Failure injection mode — stress test implementations by simulating failures and hostile conditions
+globs:
+alwaysApply: false
+---
+
+# @chaos
+
+**Trigger:** After implementing a feature, before shipping. Tests resilience, not just correctness.
+
+## What it tests
+
+Correctness testing asks: "does it work under normal conditions?"
+Chaos testing asks: "does it degrade gracefully under hostile conditions?"
+
+## Protocol
+
+1. Load the implementation (from approved plan or recent changes).
+2. For each failure scenario below: mentally or actually inject the failure and trace what happens.
+
+### Dependency failures
+- **Service unavailable**: external API returns 503 — does the app retry? fail gracefully? surface a useful error?
+- **Intermittent failures**: dependency fails 30% of requests — does state corrupt? does partial success cause inconsistency?
+- **Slow dependency**: upstream takes 10s instead of 100ms — does it timeout properly? does it block a thread pool?
+- **Wrong response shape**: dependency returns unexpected schema — does it crash or handle gracefully?
+
+### Data failures
+- **Null/empty inputs**: pass null, "", [], {} to every public interface — what breaks?
+- **Boundary values**: max int, negative numbers, very long strings, special characters, unicode
+- **Corrupt state**: what if the DB has partial write from a previous failed transaction?
+- **Stale cache**: cache returns old data while DB has new — is this handled?
+
+### Infrastructure failures
+- **Redis unavailable**: does the app fall back or crash?
+- **DB connection pool exhausted**: does it queue? fail fast? surface a clear error?
+- **Network partition**: partial network failure between services — can state become inconsistent?
+- **Disk full**: what happens to logging, temp files, uploads?
+
+### Concurrency failures
+- **Race condition**: two requests modify the same resource simultaneously — is there a lock?
+- **Duplicate request**: same request sent twice (retry, double-click) — is it idempotent?
+- **Out-of-order events**: message queue delivers events out of sequence — does ordering matter?
+
+### Security failures
+- **Auth bypass attempts**: what if the auth token is expired? forged? from wrong tenant?
+- **Privilege escalation**: what if a low-privilege user calls a high-privilege endpoint?
+- **Input injection**: SQL, HTML, command injection in every user-controlled field
+
+## Output format
+
+For each failure scenario tested:
+```
+Scenario: [what was injected]
+Result:   [what actually happens]
+Verdict:  RESILIENT | DEGRADES GRACEFULLY | FAILS UNGRACEFULLY | CATASTROPHIC
+Impact:   [data loss? inconsistency? crash? security issue?]
+Fix needed: [yes / no — if yes, describe]
+```
+
+## Resilience score
+
+```
+## Chaos Report: {feature}
+
+Scenarios tested: N
+Resilient:            X
+Degrades gracefully:  X
+Fails ungracefully:   X  ← fix before shipping
+Catastrophic:         X  ← block ship until fixed
+
+Resilience score: XX/100
+```
+
+Call `save_artifact` type=`specs`, slug=`chaos-{feature-slug}`.
+
+## Rules
+
+- A "catastrophic" result (data loss, security bypass, silent data corruption) is a hard block on shipping.
+- "Fails ungracefully" should be fixed — crashing with a 500 is better than silently corrupting state, but graceful degradation is the target.
+- Do not skip the concurrency and security sections — they are the most commonly missed.

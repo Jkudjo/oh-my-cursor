@@ -35,9 +35,22 @@ alwaysApply: false
 4. Monitor: `get_team_status` session_id="team-XXX"
    — or from terminal: `omc team status`
 
-5. When all tasks are `done`: run `@review` and `@qa` on the combined result.
+5. **Adversarial verification** — when implementation tasks are done, before `@review`:
+   ```
+   assign_task session_id="team-XXX" title="Adversarial review of worker-1 output"
+     description="Your job is to BREAK worker-1's implementation. Find flaws, test edge cases,
+     attempt to construct inputs that cause failures. Report every weakness found — do not
+     be polite. A flaw you miss here reaches production."
+     assigned_to="worker-2"
+   ```
+   - The adversarial worker must attempt to break the implementation, not just read it
+   - It must try: null inputs, boundary values, concurrent access, wrong types, large inputs
+   - It must check: error paths, missing auth checks, SQL injection, unhandled exceptions
+   - Result must be: list of flaws found (with severity) or explicit "no flaws found after X attempts"
 
-6. Call `save_checkpoint` with the final state.
+6. After adversarial verification passes: run `@review` and `@qa` on the combined result.
+
+7. Call `save_checkpoint` with the final state.
 
 ## Terminal commands
 

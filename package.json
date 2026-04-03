@@ -1,6 +1,6 @@
 {
   "name": "oh-my-cursor",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Workflow layer for Cursor — structured skills, MCP state, and rule scaffolding",
   "type": "module",
   "main": "dist/index.js",

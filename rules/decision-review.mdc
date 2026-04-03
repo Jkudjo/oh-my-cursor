@@ -1,0 +1,83 @@
+---
+description: Decision review — audit thinking quality, not just code quality
+globs:
+alwaysApply: false
+---
+
+# @decision-review
+
+**Trigger:** After completing a significant task. Reviews the quality of the reasoning process, not just the output.
+
+This is the meta-layer above `@review` (which reviews code). `@decision-review` reviews the decisions that led to the code.
+
+## Protocol
+
+Load the session artifacts: diagnosis, plan, implementation approach, and review results.
+
+Evaluate each dimension:
+
+### 1. Problem framing
+- Was the problem correctly identified, or was a symptom treated as the root cause?
+- Was scope appropriately bounded — not too narrow (missing real cause) or too wide (unnecessary changes)?
+- **Score 1–5**: 1=solved wrong problem, 5=correctly identified and bounded the real problem
+
+### 2. Hypothesis quality
+- Were alternative causes considered before committing to the leading theory?
+- Was the hypothesis tree broad enough to catch non-obvious causes?
+- Was any hypothesis held too long against contradicting evidence?
+- **Score 1–5**: 1=first theory, never reconsidered, 5=full tree, updated on contradictions
+
+### 3. Risk estimation
+- Were risks accurately estimated, or understated?
+- Was blast radius correctly scoped?
+- Were there surprises during execution that should have been anticipated?
+- **Score 1–5**: 1=ignored risks, 5=accurately predicted all relevant risks
+
+### 4. Decision under uncertainty
+- When information was missing, were assumptions made explicit?
+- Were decisions appropriately deferred when uncertainty was high?
+- Was overconfidence present anywhere?
+- **Score 1–5**: 1=confident with no evidence, 5=uncertainty always labelled, deferral where appropriate
+
+### 5. Verification quality
+- Was a clear success criterion defined before starting?
+- Was the fix verified against the actual root cause, not just surface symptoms?
+- **Score 1–5**: 1=no verification, 5=exact metric proved the fix worked
+
+## Output
+
+```markdown
+## Decision Review: {task}
+
+### Problem framing:       X/5
+### Hypothesis quality:    X/5
+### Risk estimation:       X/5
+### Decision under uncertainty: X/5
+### Verification quality:  X/5
+
+**Total: XX/25**
+
+### What was done well
+[specific]
+
+### What should be different next time
+[specific, actionable]
+
+### Pattern to encode
+[if a systematic weakness is found — what rule would prevent it?]
+```
+
+If a systematic weakness is identified (e.g. "consistently underestimates DB-related hypotheses"):
+- Propose a rule addition to `diagnose.mdc` or `00-workflow.mdc`
+- Call `set_memory` key=`decision-pattern-{slug}` to persist the learning
+
+Call `save_artifact` type=`specs`, slug=`decision-review-{task-slug}`.
+Call `save_session_score` with the 7-dimension scores from the benchmark framework.
+
+## The purpose
+
+This skill encodes the difference between:
+- **Correctness**: the code works
+- **Judgment**: the reasoning that led to the code was sound
+
+A system that only checks correctness will repeat the same reasoning failures. A system that checks judgment improves over time.

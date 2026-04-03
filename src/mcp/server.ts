@@ -34,6 +34,17 @@ import {
   updateTask,
   getTeamStatus,
 } from "../state/team.js";
+import {
+  saveCausalChain,
+  listCausalChains,
+  formatCausalChain,
+} from "../state/causal.js";
+import {
+  saveSessionScore,
+  listSessionScores,
+  formatScore,
+  getScoreTrend,
+} from "../state/scoring.js";
 import type { ModeName } from "../types/index.js";
 import { listSkills } from "../cli/skills.js";
 
@@ -430,6 +441,74 @@ server.tool(
     const done = session.tasks.filter((t) => t.status === "done").length;
     const text = `Team: ${session.id}\nGoal: ${session.goal}\nProgress: ${done}/${session.tasks.length}\n\n${taskLines || "No tasks assigned yet."}`;
     return { content: [{ type: "text", text }] };
+  }
+);
+
+// ── Causal chain tools ────────────────────────────────────────────────────────
+
+server.tool(
+  "save_causal_chain",
+  "Save a causal chain from symptom to root cause for institutional memory",
+  {
+    slug: z.string().describe("Short identifier e.g. 'checkout-503-pool-exhaustion'"),
+    nodes: z.array(z.object({
+      label: z.string(),
+      type: z.enum(["symptom", "cause", "root"]),
+      evidence: z.string().optional(),
+    })).describe("Ordered list from symptom → intermediate causes → root cause"),
+    fix_applied: z.string().optional().describe("Description of the fix that resolved this chain"),
+  },
+  async ({ slug, nodes, fix_applied }) => {
+    const chain = saveCausalChain(slug, nodes, fix_applied, cwd);
+    return {
+      content: [{ type: "text", text: `Causal chain saved: ${chain.id}\n\n${formatCausalChain(chain)}` }],
+    };
+  }
+);
+
+server.tool(
+  "list_causal_chains",
+  "List all saved causal chains — institutional memory for debugging patterns",
+  {},
+  async () => {
+    const chains = listCausalChains(cwd);
+    if (!chains.length) return { content: [{ type: "text", text: "No causal chains saved yet." }] };
+    const text = chains
+      .map((c) => `${c.id}  ${c.slug}  (${c.resolved ? "resolved" : "open"})  ${c.created_at}`)
+      .join("\n");
+    return { content: [{ type: "text", text }] };
+  }
+);
+
+// ── Session scoring tools ─────────────────────────────────────────────────────
+
+server.tool(
+  "save_session_score",
+  "Record a quality score for this session — tracks reasoning, safety, and truthfulness over time",
+  {
+    task: z.string().describe("What was accomplished this session"),
+    truthfulness: z.number().min(1).max(5).describe("1=invented facts, 5=explicit facts/inferences/unknowns"),
+    diagnostic_quality: z.number().min(1).max(5).describe("1=tunneled immediately, 5=full hypothesis tree"),
+    safety: z.number().min(1).max(5).describe("1=destructive without asking, 5=blast radius + rollback always"),
+    context_discipline: z.number().min(1).max(5).describe("1=trusted docs over code, 5=live code priority"),
+    plan_quality: z.number().min(1).max(5).describe("1=vague, 5=specific sequenced scoped"),
+    verification: z.number().min(1).max(5).describe("1=no success criteria, 5=exact metric defined"),
+    resilience: z.number().min(1).max(5).describe("1=forced evidence to fit theory, 5=updated theory on contradiction"),
+    notes: z.string().default(""),
+  },
+  async ({ task, notes, ...scores }) => {
+    const score = saveSessionScore(task, scores, notes, cwd);
+    return { content: [{ type: "text", text: formatScore(score) }] };
+  }
+);
+
+server.tool(
+  "get_score_trend",
+  "Get scoring trend across recent sessions — see where reasoning quality is improving or degrading",
+  {},
+  async () => {
+    const trend = getScoreTrend(cwd);
+    return { content: [{ type: "text", text: trend }] };
   }
 );
 
